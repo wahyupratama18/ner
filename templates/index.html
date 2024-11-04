@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Page</title>
+    <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 flex items-center justify-center h-screen">
+    <div class="bg-white dark:bg-slate-950 p-8 rounded-lg shadow-lg w-full max-w-xl" x-data="{
+        text: '',
+        summary: '',
+        ner: [],
+        error: false,
+        loading: false,
+        submission() {
+            this.loading = true
+            axios.post('/ner', {
+                text: this.text
+            }).then(response => {
+                this.ner = response.data.entities
+            }).catch(error => {
+                this.error = error.response.data.error
+            }).finally(() => {
+                this.loading = false
+            })
+        }
+    }">
+        <h2 class="text-2xl font-bold mb-6 text-slate-800 dark:text-slate-200">News Summarizer</h2>
+        <p class="text-slate-700 dark:text-slate-300 mb-4">Enter the text to summarize your news.</p>
+
+        <!-- alert -->
+        <div class="bg-red-700 border border-red-400 text-red-100 px-4 py-3 rounded-lg relative mb-4 flex items-center gap-x-2" role="alert" x-show="error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+            </svg>
+
+            <p>
+                <span class="font-bold">Alert!</span>
+                <br>
+                <span x-text="error"></span>
+            </p>
+        </div>
+
+        <form @submit.prevent="submission">
+            <div class="mb-4">
+                <label for="text" class="block text-slate-700 dark:text-slate-300 font-bold mb-2">Text</label>
+                <textarea id="text" x-model="text" class="shadow appearance-none border dark:border-slate-900 rounded w-full py-2 px-3 dark:bg-zinc-800 text-slate-800 dark:text-slate-200 leading-tight focus:outline-none focus:shadow-outline" rows="4" required></textarea>
+            </div>
+            <div class="flex items-center justify-between">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-x-2" :disabled="loading">
+                    <span x-text="loading ? 'Loading...' : 'Submit'"></span>
+                    <svg x-show="loading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-6" x-show="(summary || ner) && ! loading">
+            <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-slate-200">NER Statistics :</h3>
+            <ul class="list-disc list-inside text-slate-800 dark:text-slate-200">
+                <template x-for="(entity, i) in ner" :key="i">
+                    <li x-text="`${entity.label}: ${entity.text}`"></li>
+                </template>
+            </ul>
+            <p class="text-slate-700 dark:text-slate-300" x-text="summary"></p>
+        </div>
+    </div>
+</body>
+</html>
