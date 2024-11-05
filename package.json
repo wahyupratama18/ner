@@ -1,5 +1,5 @@
 {
-  "name": "prediction-pilkada",
+  "name": "named-entity-recognition",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {

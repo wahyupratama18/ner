@@ -7,7 +7,7 @@
     <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
     <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </head>
-<body class="bg-slate-100 dark:bg-slate-900 flex items-center justify-center h-screen">
+<body class="bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
     <div class="bg-white dark:bg-slate-950 p-8 rounded-lg shadow-lg w-full max-w-xl" x-data="{
         text: '',
         summary: '',
@@ -20,9 +20,18 @@
                 text: this.text
             }).then(response => {
                 this.ner = response.data.entities
+
+                axios.post('/summarizer', {
+                    text: this.text
+                }).then(response => {
+                    this.summary = response.data.summary
+                }).catch(error => {
+                    this.error = error.response.data.error
+                }).finally(() => {
+                    this.loading = false
+                })
             }).catch(error => {
                 this.error = error.response.data.error
-            }).finally(() => {
                 this.loading = false
             })
         }
@@ -59,14 +68,17 @@
             </div>
         </form>
 
-        <div class="mt-6" x-show="(summary || ner) && ! loading">
-            <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-slate-200">NER Statistics :</h3>
+        <div class="mt-6" x-show="(summary && ner) && ! loading">
+            <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-slate-200">Summary:</h3>
+
+            <p class="text-slate-700 dark:text-slate-300" x-text="summary"></p>
+
+            <h3 class="text-xl font-bold mt-4 mb-2 text-slate-800 dark:text-slate-200">Named Entities:</h3>
             <ul class="list-disc list-inside text-slate-800 dark:text-slate-200">
                 <template x-for="(entity, i) in ner" :key="i">
                     <li x-text="`${entity.label}: ${entity.text}`"></li>
                 </template>
             </ul>
-            <p class="text-slate-700 dark:text-slate-300" x-text="summary"></p>
         </div>
     </div>
 </body>
