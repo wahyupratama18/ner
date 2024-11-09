@@ -14,12 +14,51 @@
         ner: [],
         error: false,
         loading: false,
+        ctx: null,
+        groupedEntities: {},
+        setChart() {
+            this.groupedEntities = this.ner.reduce((acc, entity) => {
+                if (!acc[entity.label]) {
+                    acc[entity.label] = { count: 0, values: [] };
+                }
+                acc[entity.label].count += 1;
+                acc[entity.label].values.push(entity.text);
+                return acc;
+            }, {});
+            
+            if (this.ctx) {
+                this.ctx.destroy();
+            }
+
+            this.ctx = new Chart(document.getElementById('ner_stat'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(this.groupedEntities),
+                    datasets: [{
+                        label: 'Named Entities',
+                        data: Object.values(this.groupedEntities).map(entity => entity.count),
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        },
         submission() {
             this.loading = true
             axios.post('/ner', {
                 text: this.text
             }).then(response => {
                 this.ner = response.data.entities
+
+                this.setChart()
 
                 axios.post('/summarizer', {
                     text: this.text
@@ -31,6 +70,7 @@
                     this.loading = false
                 })
             }).catch(error => {
+                console.log(error)
                 this.error = error.response.data.error
                 this.loading = false
             })
@@ -40,7 +80,7 @@
         <p class="text-slate-700 dark:text-slate-300 mb-4">Enter the text to summarize your news.</p>
 
         <!-- alert -->
-        <div class="bg-red-700 border border-red-400 text-red-100 px-4 py-3 rounded-lg relative mb-4 flex items-center gap-x-2" role="alert" x-show="error">
+        <div class="bg-red-700 border border-red-400 text-red-100 px-4 py-3 rounded-lg relative mb-4 flex items-center gap-x-2" role="alert" x-show="error" style="display: none;">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
             </svg>
@@ -68,16 +108,30 @@
             </div>
         </form>
 
+        
         <div class="mt-6" x-show="(summary && ner) && ! loading">
             <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-slate-200">Summary:</h3>
-
+            
             <p class="text-slate-700 dark:text-slate-300" x-text="summary"></p>
-
+            
             <h3 class="text-xl font-bold mt-4 mb-2 text-slate-800 dark:text-slate-200">Named Entities:</h3>
+
+            <canvas id="ner_stat" height="200"></canvas>
+
             <ul class="list-disc list-inside text-slate-800 dark:text-slate-200">
-                <template x-for="(entity, i) in ner" :key="i">
-                    <li x-text="`${entity.label}: ${entity.text}`"></li>
+                <template x-for="(entities, label) in groupedEntities" :key="label">
+                    <li>
+                        <strong x-text="label"></strong>
+                        <ul class="list-disc list-inside ml-4">
+                            <template x-for="(entity, index) in entities.values" :key="index">
+                                <li x-text="entity"></li>
+                            </template>
+                        </ul>
+                    </li>
                 </template>
+                <!-- <template x-for="(entity, i) in ner" :key="i">
+                    <li x-text="`${entity.label}: ${entity.text}`"></li>
+                </template> -->
             </ul>
         </div>
     </div>
